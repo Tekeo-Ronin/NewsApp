@@ -73,6 +73,17 @@ const newsService = (function () {
   };
 })();
 
+//Elements
+
+const form = document.forms["newsControls"];
+const countrySelect = form.elements["country"];
+const searchInput = form.elements["search"];
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  loadNews();
+});
+
 //  init selects
 document.addEventListener("DOMContentLoaded", function () {
   M.AutoInit();
@@ -82,12 +93,28 @@ document.addEventListener("DOMContentLoaded", function () {
 //Load news function
 
 function loadNews() {
-  newsService.topHeadlines("ua", onGetResponse);
+  showLoader();
+
+  const country = countrySelect.value;
+  const searchText = searchInput.value;
+
+  if (!searchText) {
+    newsService.topHeadlines(country, onGetResponse);
+  } else {
+    newsService.everything(searchText, onGetResponse);
+  }
 }
 
 //function on get respons from server
 
 function onGetResponse(err, res) {
+  removePreloader();
+
+  if (err) {
+    showAlert(err, "error-msg");
+    return;
+  }
+
   renderNews(res.articles);
 }
 
@@ -95,6 +122,9 @@ function onGetResponse(err, res) {
 
 function renderNews(news) {
   const newsContainer = document.querySelector(".news-container .row");
+  if (newsContainer.children.length) {
+    clearContainer(newsContainer);
+  }
   let fragment = "";
   news.forEach((newsItem) => {
     const el = newsTemplate(newsItem);
@@ -102,6 +132,16 @@ function renderNews(news) {
   });
 
   newsContainer.insertAdjacentHTML("afterbegin", fragment);
+}
+
+//function clear container
+
+function clearContainer(container) {
+  let child = container.lastElementChild;
+  while (child) {
+    container.removeChild(child);
+    child = container.lastElementChild;
+  }
 }
 
 // News item template function
@@ -123,4 +163,32 @@ function newsTemplate({ urlToImage, title, url, description }) {
   </div>
 </div>
   `;
+}
+
+// Function alert massage
+
+function showAlert(msg, type) {
+  M.toast({ html: msg, classes: type });
+}
+
+// Show loader function
+
+function showLoader() {
+  document.body.insertAdjacentHTML(
+    'afterbegin',
+    `
+    <div class="progress">
+      <div class="indeterminate"></div>
+    </div>
+  `,
+  );
+}
+
+//remove loader function
+
+function removePreloader() {
+  const loader = document.querySelector('.progress');
+  if (loader) {
+    loader.remove();
+  }
 }
